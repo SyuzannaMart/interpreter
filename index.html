@@ -108,39 +108,72 @@
 <textarea id="outputConfig" placeholder="Generate new code "></textarea>
 <script>
 
-    let config = [];
+let originalAssignment = 'const config =';
 
-    function loadConfig() {
+function loadConfig() {
 
-      try {
+  try {
 
-        const raw = document.getElementById('inputConfig').value;
+    const raw = document.getElementById('inputConfig').value;
 
-        const cleaned = raw.replace(/^[^{[]*=/, '').trim();
+    
 
-        const start = cleaned.indexOf('[');
+    const match = raw.match(/(window\.\w+\s*=|const\s+\w+\s*=)/);
 
-        const end = cleaned.lastIndexOf(']');
+    originalAssignment = match ? match[0] : 'const config =';
 
-        if (start === -1 || end === -1 || end <= start) throw new Error("Не удалось найти массив");
+    const cleaned = raw.replace(/^[^{[]*=/, '').trim();
 
-        const arrayCode = cleaned.substring(start, end + 1);
+    const start = cleaned.indexOf('[');
 
-        const parsed = eval(arrayCode);
+    const end = cleaned.lastIndexOf(']');
 
-        if (!Array.isArray(parsed)) throw new Error("Найденный код не массив");
+    if (start === -1 || end === -1 || end <= start) throw new Error("Не удалось найти массив");
 
-        config = parsed;
+    const arrayCode = cleaned.substring(start, end + 1);
 
-        renderConfig();
+    const parsed = eval(arrayCode);
 
-      } catch (err) {
+    if (!Array.isArray(parsed)) throw new Error("Найденный код не массив");
 
-        alert("Ошибка загрузки: " + err.message);
+    config = parsed;
 
-      }
+    renderConfig();
 
-    }
+  } catch (err) {
+
+    alert("Ошибка загрузки: " + err.message);
+
+  }
+
+}
+
+function exportConfig() {
+
+  const output = document.getElementById('outputConfig');
+
+  const result = originalAssignment + ' [\n' + config.map(obj => {
+
+    const entries = Object.entries(obj).map(([key, val]) => {
+
+      const safeVal = typeof val === 'string'
+
+        ? (val.includes('"') ? `'${val.replace(/'/g, "\\'")}'` : `"${val}"`)
+
+        : JSON.stringify(val);
+
+      return `  ${key}: ${safeVal}`;
+
+    });
+
+    return '  {\n' + entries.join(',\n') + '\n  }';
+
+  }).join(',\n') + '\n];';
+
+  output.value = result;
+
+}
+ 
 
     function renderConfig() {
 
@@ -274,27 +307,7 @@
 
     }
 
-    function exportConfig() {
-
-      const output = document.getElementById('outputConfig');
-
-      const result = 'const config = [\n' + config.map(obj => {
-
-        const entries = Object.entries(obj).map(([key, val]) => {
-
-          const safeVal = val.includes('"') ? `'${val.replace(/'/g, "\\'")}'` : `"${val}"`;
-
-          return `  ${key}: ${safeVal}`;
-
-        });
-
-        return '  {\n' + entries.join(',\n') + '\n  }';
-
-      }).join(',\n') + '\n];';
-
-      output.value = result;
-
-    }
+   
 
     (function () {
  const processedInputs = new WeakSet();
