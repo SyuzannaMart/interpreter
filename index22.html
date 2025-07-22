@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>Config Editor</title>
+<style>
+
+    body {
+
+      font-family: sans-serif;
+
+      background: #f0f0f0;
+
+      padding: 20px;
+
+    }
+    .entry input{
+      max-width: 300px;
+    }
+
+    #configContainer{
+      display: grid
+;
+    grid-template-columns: auto auto auto auto;
+    gap: 8px;
+    }
+    textarea,
+
+    input {
+
+      width: 100%;
+
+      padding: 6px;
+
+      margin: 6px 0;
+
+      box-sizing: border-box;
+
+      border-radius: 8px;
+
+      background-color: aliceblue;
+
+      border: 2px solid #45a3e3;
+
+    }
+
+    #outputConfig,
+
+    #inputConfig {
+
+      min-height: 200px;
+
+    }
+
+    .entry {
+
+      display: flex
+;
+    flex-direction: column;
+    margin-bottom: 12px;
+    align-items: flex-end;
+      background: #fff;
+
+      padding: 10px;
+
+      margin-bottom: 12px;
+
+      border-radius: 6px;
+
+      box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
+
+    }
+
+    .entry  label {
+      font-size: 20px;
+      color:#700b0b;
+    }
+    button {
+
+      margin-top: 10px;
+
+      padding: 6px 12px;
+
+      border-radius: 8px;
+
+      background: #98fc8c;
+
+      border: 2px solid #76d66b;
+
+      color: #1b6116;
+
+      font-size: 18px;
+
+      min-height: 44px;
+
+      font-weight: 600;
+
+    }
+</style>
+</head>
+<body>
+<h2>📦 Config editor</h2>
+<textarea id="inputConfig" placeholder="Paste here config: const config = [...]"></textarea>
+<button onclick="loadConfig()">📥 Inplement config</button>
+<div id="configContainer"></div>
+<button onclick="addEntry()">➕Add new object</button>
+<button onclick="exportConfig()">📤 Generate new code</button>
+<textarea id="outputConfig" placeholder="Generate new code "></textarea>
+<script>
+
+    let config = [];
+
+    function loadConfig() {
+
+      try {
+
+        const raw = document.getElementById('inputConfig').value;
+
+        const cleaned = raw.replace(/^[^{[]*=/, '').trim();
+
+        const start = cleaned.indexOf('[');
+
+        const end = cleaned.lastIndexOf(']');
+
+        if (start === -1 || end === -1 || end <= start) throw new Error("Не удалось найти массив");
+
+        const arrayCode = cleaned.substring(start, end + 1);
+
+        const parsed = eval(arrayCode);
+
+        if (!Array.isArray(parsed)) throw new Error("Найденный код не массив");
+
+        config = parsed;
+
+        renderConfig();
+
+      } catch (err) {
+
+        alert("Ошибка загрузки: " + err.message);
+
+      }
+
+    }
+
+    function renderConfig() {
+
+      const container = document.getElementById('configContainer');
+
+      container.innerHTML = '';
+
+      config.forEach((obj, index) => {
+
+        const div = document.createElement('div');
+
+        div.className = 'entry';
+
+        Object.keys(obj).forEach(key => {
+
+          const wrapper = document.createElement('div');
+
+          wrapper.style.display = 'flex';
+
+          wrapper.style.alignItems = 'center';
+
+          wrapper.style.gap = '8px';
+
+          const input = document.createElement('input');
+
+          input.value = obj[key];
+
+          input.placeholder = key;
+
+          input.dataset.index = index;
+
+          input.dataset.key = key;
+
+          input.style.flex = '1';
+
+          let previewImg;
+
+          if (key === 'imgSrc') {
+
+            previewImg = document.createElement('img');
+
+            previewImg.src = obj[key];
+
+            previewImg.style.maxWidth = '100px';
+
+            previewImg.style.maxHeight = '100px';
+
+            previewImg.style.border = '1px solid #ccc';
+
+            previewImg.style.borderRadius = '6px';
+
+          }
+
+          input.addEventListener('input', (e) => {
+
+            const i = +e.target.dataset.index;
+
+            const k = e.target.dataset.key;
+
+            config[i][k] = e.target.value;
+
+            if (k === 'imgSrc' && previewImg) {
+
+              previewImg.src = e.target.value;
+
+            }
+
+          });
+
+          const deleteKeyBtn = document.createElement('button');
+
+          deleteKeyBtn.textContent = '🗑';
+
+          deleteKeyBtn.title = `delete key "${key}"`;
+
+          deleteKeyBtn.style.padding = '5px 10px';
+
+          deleteKeyBtn.style.background = '#fbdcdc';
+
+          deleteKeyBtn.style.color = '#a50000';
+
+          deleteKeyBtn.style.border = '1px solid #a50000';
+
+          deleteKeyBtn.style.borderRadius = '6px';
+
+          deleteKeyBtn.onclick = () => {
+
+            delete config[index][key];
+
+            renderConfig();
+
+          };
+
+          wrapper.appendChild(input);
+
+          if (previewImg) wrapper.appendChild(previewImg);
+
+          wrapper.appendChild(deleteKeyBtn);
+
+          div.appendChild(wrapper);
+
+        });
+
+    
+
+        const removeObjBtn = document.createElement('button');
+
+        removeObjBtn.textContent = '🗑 delete';
+
+        removeObjBtn.onclick = () => {
+
+          config.splice(index, 1);
+
+          renderConfig();
+
+        };
+
+        div.appendChild(removeObjBtn);
+
+        container.appendChild(div);
+
+      });
+
+    }
+
+    function addEntry() {
+
+      config.push({});
+
+      renderConfig();
+
+    }
+
+    function exportConfig() {
+
+      const output = document.getElementById('outputConfig');
+
+      const result = 'const config = [\n' + config.map(obj => {
+
+        const entries = Object.entries(obj).map(([key, val]) => {
+
+          const safeVal = val.includes('"') ? `'${val.replace(/'/g, "\\'")}'` : `"${val}"`;
+
+          return `  ${key}: ${safeVal}`;
+
+        });
+
+        return '  {\n' + entries.join(',\n') + '\n  }';
+
+      }).join(',\n') + '\n];';
+
+      output.value = result;
+
+    }
+
+    (function () {
+ const processedInputs = new WeakSet();
+ function createLabelForInput(input) {
+   if (!input.placeholder || processedInputs.has(input)) return;
+   const label = document.createElement('label');
+   label.textContent = input.placeholder;
+   label.style.display = 'block';
+   label.style.marginBottom = '4px';
+   input.parentNode.insertBefore(label, input);
+   input.placeholder = '';
+   processedInputs.add(input);
+ }
+ function processAllInputs() {
+   const inputs = document.querySelectorAll('input[placeholder]');
+   inputs.forEach(createLabelForInput);
+ }
+
+ processAllInputs();
+
+ const observer = new MutationObserver(mutations => {
+   for (const mutation of mutations) {
+     mutation.addedNodes.forEach(node => {
+       if (node.nodeType !== 1) return;
+       if (node.matches?.('input[placeholder]')) {
+         createLabelForInput(node);
+       }
+       const inputs = node.querySelectorAll?.('input[placeholder]');
+       inputs?.forEach(createLabelForInput);
+     });
+   }
+ });
+ observer.observe(document.body, {
+   childList: true,
+   subtree: true,
+ });
+})();
+</script>
+</body>
+</html>
+ 
