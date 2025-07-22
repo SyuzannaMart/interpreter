@@ -105,6 +105,7 @@
 <div id="configContainer"></div>
 <button onclick="addEntry()">➕Add new object</button>
 <button onclick="exportConfig()">📤 Generate new code</button>
+    <button id="copy">Copy</button>
 <textarea id="outputConfig" placeholder="Generate new code "></textarea>
 <script>
 
@@ -345,6 +346,16 @@ function exportConfig() {
    subtree: true,
  });
 })();
+
+    function copyOutputConfig() {
+ const text = document.getElementById('outputConfig').value;
+ navigator.clipboard.writeText(text).then(() => {
+   alert('Successfully copied!');
+ }).catch(err => {
+   alert('Copy error ' + err);
+ });
+}
+document.getElementById('copy').addEventListener('click', copyOutputConfig);
 </script>
 </body>
 </html>
